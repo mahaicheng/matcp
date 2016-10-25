@@ -66,6 +66,18 @@ public:
 	PacketQueue() : head_(0), tail_(0), len_(0), bytes_(0) {}
 #endif
 	virtual int length() const { return (len_); }
+	int DataLength() const
+	{
+		int len = 0;
+		for (Packet *curr = head_; curr != nullptr; curr = curr->next_)
+		{
+			if (!HDR_CMN(curr)->control_packet())
+			{
+				len++;
+			}
+		}
+		return len;
+	}
     double avg_length() const
 	{ 
 		if (intervals.empty())
@@ -216,6 +228,10 @@ public:
 	int limit() { return qlim_; }
 	int length() { return pq_->length(); }	/* number of pkts currently in
 						 * underlying packet queue */
+	int DataLength() const
+	{
+		return pq_->DataLength();
+	}
 #ifdef SEMITCP
     double avg_length() const
     {

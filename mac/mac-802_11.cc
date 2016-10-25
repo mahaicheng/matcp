@@ -859,7 +859,7 @@ Mac802_11::send_timer()
 
 		if(cf->cf_fc.fc_order) {///CTSC
 			nb->set_helped_by_me(false);///If fail to recv DATA, reset helped_by_me
-			if(neighbor_congested() && pktPre_ && !pktTx_ && RECEIVER(pktPre_) == RECEIVER(pktCTRL_))
+			if(TotalCongested() && pktPre_ && !pktTx_ && RECEIVER(pktPre_) == RECEIVER(pktCTRL_))
 				restore_tx();
 		}
 	#endif
@@ -1075,7 +1075,7 @@ Mac802_11::check_pktRTS()
 	}
 #ifdef SEMITCP
 	mh->dh_fc.fc_order = false;///RTS
-	if(neighbor_congested())
+	if(TotalCongested())
 		mh->dh_fc.fc_order = true;///RTSC
 
 	RTS_send++;
@@ -2148,20 +2148,22 @@ Mac802_11::recvACK(Packet *p)
 
 bool Mac802_11::neighbor_congested()
 {	
-	int pktCount = 0;
-	if (pktTx_ != nullptr && !HDR_CMN(pktTx_)->control_packet())
-		pktCount++;
-	if (pktPre_ != nullptr && !HDR_CMN(pktPre_)->control_packet())
-		pktCount++;
-	
-	pktCount += p_to_prique->length() + p_aodv_agent->length();
-	
+	int pktCount = p_to_prique->length() + p_aodv_agent->length();
 	return pktCount >= p_to_prique->congestionThreshold();
 }
 
 bool Mac802_11::local_congested()
 {
-	return neighbor_congested() || !is_idle();
+	return TotalCongested() || !is_idle();
+}
+bool Mac802_11::TotalCongested() const
+{
+	int pktCount = p_to_prique->DataLength() + p_aodv_agent->DataLength();
+	if (pktTx_ != nullptr && !HDR_CMN(pktTx_)->control_packet())
+	{
+		pktCount++;
+	}
+	return pktCount >= 1;
 }
 
 void Mac802_11::overHear( Packet* p )
@@ -2230,7 +2232,7 @@ Mac802_11::defer_rts(Neighbour *nb)
 {
     const double now = Scheduler::instance().clock();
 	
-    if(neighbor_congested())	//本节点拥塞了，不推迟发送RTS or RTSC
+    if(TotalCongested())	//本节点拥塞了，不推迟发送RTS or RTSC
 		return false;
     else if(kk < KK && now - nb_congested < round_trip_time)
 		return true;
@@ -2252,7 +2254,7 @@ refuse_state Mac802_11::refuse( Packet* p )
 	if (rf->rf_fc.fc_subtype == MAC_Subtype_uRTS)///the RTS packet is sent for control packet like
 		return CTS;		// NOTE: But actually, the control packets are broadcast, Would not send a RTS
 	bool RTSC = rf->rf_fc.fc_order;
-	bool me_congested = neighbor_congested();
+	bool me_congested = TotalCongested();
 	
 	if(pkt) {   //have data packet to send
 		if(!HDR_CMN(pkt)->control_packet())

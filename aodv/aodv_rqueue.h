@@ -55,6 +55,18 @@ class aodv_rqueue : public Connector {
         {
             return len_;
         }
+        int DataLength() const
+        {
+			int len = 0;
+			for (Packet *curr = head_; curr != nullptr; curr = curr->next_)
+			{
+				if (!HDR_CMN(curr)->control_packet())
+				{
+					len++;
+				}
+			}
+			return len;
+		}
 #endif
         aodv_rqueue();
 #ifdef SEMITCP

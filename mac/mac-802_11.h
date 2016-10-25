@@ -403,6 +403,7 @@ private:
 public:
 	bool neighbor_congested(); 
 	bool local_congested();
+	bool TotalCongested() const;
 private:
 	void print_to_trace(Packet* p, char* function = NULL);
 
